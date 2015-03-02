@@ -1,0 +1,77 @@
+/** http://en.wikipedia.org/wiki/Church_encoding & http://jwodder.freeshell.org/lambda.html **/
+/** Booleans **/
+true    = (\a.(\b.a))
+false   = (\a.(\b.b))
+not     = (\p.(\a.(\b.((p b) a))))
+and		= (\p.(\q.((p q) p)))
+or		= (\p.(\q.((p p) q)))
+xor		= (\a.(\b.((a (not b)) b)))
+
+/** Common Combinators **/
+K		= (\x.(\y.x))
+S		= (\x.(\y.(\z.((x z) (y z)))))
+I		= (\x.x)
+X		= (\x.((x S) K))
+XX		= (\x.(((x K) S) K))
+B		= (\x.(\y.(\z.(x (y z)))))
+C		= (\x.(\y.(\z.((x z) y))))
+W		= (\x.(\y.((x y) y)))
+/** Haskell B. Curry Combinator **/
+Y 		= (\g.((\x.(g (x x))) (\x.(g (x x)))))
+YY		= ((\x.(\y.((x y) x))) (\y.(\x.(y ((x y) x)))))
+/** Turing fixed-point combinator */
+THETA	= ((\x.(\y.(y ((x x) y)))) (\x.(\y.(y ((x x) y)))))
+ww		= (\x.(x x))
+WW		= (ww ww)
+WWW		= ((\x.((x x) x)) (\x.((x x) x)))
+
+/** Zero equality **/
+iszero	= (\n.((n (\x.false)) true))
+
+/** Mathematical Operators **/
+succ    = (\n.(\f.(\x.(f ((n f) x)))))
+pred	= (\n.(\f.(\x.(((n (\g.(\h.(h (g f))))) (\u.x)) (\u.u)))))
+plus    = (\n.(\m.(\f.(\x.((n f) ((m f) x))))))
+sub		= (\m.(\n.((n pred) m)))
+mult    = (\n.(\m.(\f.(n (m f)))))
+divide	= (\n.((Y (\c.(\n.(\m.(\f.(\x.( (\d.(((iszero d) ((0 f) x)) (f ((((c d) m) f) x)))) ((sub n) m) ))))))) (succ n)))
+exp     = (\m.(\n.(n m)))
+
+/** Numeric Comparison Operators **/
+leq		= (\m.(\n.(iszero ((sub m) n))))
+lt		= (\a.(\b.(not ((leq b) a))))
+eq		= (\m.(\n.((and ((leq m) n)) ((leq n) m))))
+neq		= (\a.(\b.((or (not ((leq a) b))) (not ((leq b) a)))))
+geq		= (\a.(\b.((leq b) a)))
+gt		= (\a.(\b.(not ((leq a) b))))
+
+/** Conditionals **/
+cond	= (\z.(\x.(\y.((z x) y))))
+
+/** Pairs */
+pair	= (\x.(\y.(\f.((f x) y))))
+fst		= (\p.(p true))
+snd		= (\p.(p false))
+/* empty list */
+nil		= (\x.true)
+/* null p - evaluates to true if p is nil or false if p is a pair */
+null	= (\p.(p (\x.(\y.false))))
+
+/** fibonacci  **/
+fib		= (\n.((((n (\f.(\a.(\b. ((f b) ((plus a) b)))))) true) 0) 1))
+
+/** factorial **/
+fact	= (THETA (\f.(\n.(((iszero n) 1) ((mult n) (f (pred n)))))))
+
+/* Signed numbers */
+convS	= (\x.((pair x) 0))
+negS	= (\x.((pair (snd x)) (fst x)))
+oneZero	= ((\f.((\x.(x x)) (\x.(f (x x))))) (\c.(\x.(((iszero (fst x)) x) (((iszero (snd x)) x) (((c pair) (pred (fst x))) (pred (snd x))))))))
+plusS	= (\x.(\y.(oneZero ((pair ((plus (fst x)) (fst y))) ((plus (snd x)) (snd y))))))
+subS	= (\x.(\y.(oneZero ((pair ((plus (fst x)) (snd y))) ((plus (snd x)) (fst y))))))
+multS	= (\x.(\y.((pair ((plus ((mult (fst x)) (fst y))) ((mult (snd x)) (snd y)))) ((plus ((mult (fst x)) (snd y))) ((mult (snd x)) (fst y))))))
+divZ	= (\x.(\y.(((iszero y) 0) ((divide x) y))))
+divS	= (\x.(\y.((pair ((plus ((divZ (fst x)) (fst y))) ((divZ (snd x)) (snd y)))) ((plus ((divZ (fst x)) (snd y))) ((divZ (snd x)) (fst y))))))
+div		= ((Y (\g.(\q.(\a.(\b. ((((lt a) b) ((pair q) a)) (((g (succ q)) ((sub a) b)) b))))))) 0)
+mod		= (\a.(\b.((\p.(p false)) ((div a) b))))
+/** this line is left intentionally  empty! **/

@@ -1,0 +1,40 @@
+((or true) true)		/* = true */
+((or true) false)		/* = true */
+((or false) true)		/* = true */
+((or false) false)		/* = false */
+
+((and true) true)		/* = true */
+((and true) false)		/* = false */
+((and false) true)		/* = false */
+((and false) false)		/* = false */
+
+((xor true) true)		/* = false */
+((xor true) false)		/* = true */
+((xor false) true)		/* = true */
+((xor false) false)		/* = false */
+
+(fst ((pair a) b))		/* = a */
+(snd  ((pair a) b))		/* = b */
+
+((\g.(g(g(\x.x)))) (\h.((\f.(f(f(\z.z)))) (h (\y.y)))))		/* 1 */
+
+((\z.(\f.(\x.(f (z x)))))(\y.y))	/* 1 */
+
+((\y.c)((\z.(f z))b))	/* c */
+
+((\x.(y x))(\y.(x y))) 	/* (y x) */
+
+/* http://www.cs.umd.edu/class/spring2011/cmsc330/prac5-solutions.pdf */
+(((\z.z)(\y.(y y)))(\x.(x a)))		/* = (a a) */
+(((\z.z) (\z.(z z))) (\z.(z y)))	/* = (y y) */
+(((\x.(\y.((x y) y))) (\a.a)) b)	/* = (b b) */
+(((\x.(x x)) (\y.(y x))) z)			/* = ((x x) z) */
+((\x.((\y.(x y)) y)) z)				/* = (z y) */
+(((\x.(x x)) (\y.y)) (\y.y))		/* = (\y.y) */
+(((\x.(\y.(x y)))(\y.y)) w)			/* = w */
+
+((\x.(it x)) works)		/* (it works) */
+
+/* page 11/109 ch9.pdf */
+((\x.((plus ((sub ((exp x) 2)) ((mult 3) x))) 2))8)	/* = 42 */
+/* */
