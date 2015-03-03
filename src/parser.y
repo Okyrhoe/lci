@@ -56,7 +56,6 @@
 	static PrintTermVisitor printTermVisitor;
 	static TermClosureVisitor TermClosureVisitor;
 %}
-
 %error-verbose
 %union {
 	class Term* term;
@@ -69,6 +68,10 @@
 %type <term> Term
 %start goal;
 
+/** grammar disambiguation **/
+%nonassoc TK_DOT
+%nonassoc TK_VAR TK_NUM TK_LAMBDA TK_LPAR TK_RPAR
+%right term_assoc
 %%
 
 // gcd = (\g.\m.\n. leq m n (g n m) (g m n)) (Y (\g.\x.\y. iszero y x (g y (mod x y))))
@@ -81,6 +84,7 @@
 goal: /* nothing */
 	| goal Term TK_EOL {
 		Term* term = $2;
+		cout << "before: " << *term << endl;
 
 		term->accept(TermClosureVisitor);
 		if(term->unbound.empty())
@@ -189,11 +193,14 @@ Term:
 	| TK_NUM {
 		assert(($$ = unsigned_nat_to_term($1,true)));
 	}
-	| TK_LPAR Term Term TK_RPAR {
-		assert(($$ = new Application($2,$3)));
+	| Term Term %prec term_assoc {
+		assert(($$ = new Application($1,$2)));
 	}
-	| TK_LPAR TK_LAMBDA TK_VAR TK_DOT Term TK_RPAR {
-		assert(($$ = new Abstraction(new Variable($3),$5)));
+	| TK_LAMBDA TK_VAR TK_DOT Term {
+		assert(($$ = new Abstraction(new Variable($2),$4)));
+	}
+	| TK_LPAR Term TK_RPAR {
+		$$ = $2;
 	}
 	;
 %%
