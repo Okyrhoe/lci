@@ -41,41 +41,45 @@
    enum yytokentype {
      TK_VAR = 258,
      TK_NUM = 259,
-     TK_LPAR = 260,
-     TK_RPAR = 261,
-     TK_DOT = 262,
-     TK_LAMBDA = 263,
-     TK_DEF = 264,
-     TK_EE = 265,
-     TK_EOL = 266,
-     term_assoc = 267
+     TK_SET = 260,
+     TK_UNSET = 261,
+     TK_LPAR = 262,
+     TK_RPAR = 263,
+     TK_DOT = 264,
+     TK_LAMBDA = 265,
+     TK_DEF = 266,
+     TK_EE = 267,
+     TK_EOL = 268,
+     term_assoc = 269
    };
 #endif
 /* Tokens.  */
 #define TK_VAR 258
 #define TK_NUM 259
-#define TK_LPAR 260
-#define TK_RPAR 261
-#define TK_DOT 262
-#define TK_LAMBDA 263
-#define TK_DEF 264
-#define TK_EE 265
-#define TK_EOL 266
-#define term_assoc 267
+#define TK_SET 260
+#define TK_UNSET 261
+#define TK_LPAR 262
+#define TK_RPAR 263
+#define TK_DOT 264
+#define TK_LAMBDA 265
+#define TK_DEF 266
+#define TK_EE 267
+#define TK_EOL 268
+#define term_assoc 269
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 63 "src/parser.y"
+#line 91 "src/parser.y"
 {
 	class Expression* expr;
 	char* str;
 	int val;
 }
 /* Line 1529 of yacc.c.  */
-#line 79 "src/parser.hh"
+#line 83 "src/parser.hh"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

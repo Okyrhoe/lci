@@ -51,8 +51,36 @@
 		bool disp_signed	= true;
 		bool disp_prompt	= false;
 		bool disp_alias_def	= false;
-		bool trace			= true;
-		bool strict			= false;	//applicate order (call-by-value)
+		bool trace			= false;
+		bool strict			= false;	//applicative order (call-by-value)
+	}
+
+	static bool set_option(const char *option, bool value){
+		if(strcmp(option,"disp_bool") &&
+		   strcmp(option,"disp_unsigned") &&
+		   strcmp(option,"disp_signed") &&
+		   strcmp(option,"trace") && 
+		   strcmp(option,"strict")){
+			cout << "error: invalid option \'\e[2;49;94m"
+				 << option << "\e[0m\'" << endl;
+			cout << "system options: disp_bool, disp_unsigned," \
+					" disp_signed, trace, strict." << endl;
+			return false;
+		}
+		else if(!strcmp(option,"disp_bool"))
+			option::disp_bool = value;
+		else if(!strcmp(option,"disp_unsigned"))
+			option::disp_unsigned = value;
+		else if(!strcmp(option,"disp_signed"))
+			option::disp_signed = value;
+		else if(!strcmp(option,"trace"))
+			option::trace = value;
+		else if(!strcmp(option,"strict"))
+			option::strict = value;
+		cout << "option \'\e[2;49;94m" << option
+			 << "\e[0m\' is set to \'\e[2;49;9" 
+			 << (value ? "2mtrue":"1mfalse") << "\e[0m\'" << endl;
+		return true;
 	}
 
 	// unused:
@@ -67,13 +95,14 @@
 }
 %token <str> TK_VAR
 %token <val> TK_NUM
-%token TK_LPAR TK_RPAR TK_DOT TK_LAMBDA TK_DEF TK_EE TK_EOL
+%token TK_SET TK_UNSET TK_LPAR TK_RPAR TK_DOT TK_LAMBDA TK_DEF TK_EE TK_EOL
 %type <expr> Expression
 %start goal;
 
 /** grammar disambiguation **/
 %nonassoc TK_DOT
-%nonassoc TK_VAR TK_NUM TK_LAMBDA TK_LPAR TK_RPAR
+%nonassoc TK_SET TK_UNSET TK_LAMBDA TK_LPAR TK_RPAR
+%nonassoc TK_VAR TK_NUM
 %right term_assoc
 %%
 
@@ -181,6 +210,18 @@ goal: /* nothing */
 		else
 			sys_alias_set.insert($2);
 	}
+	| goal TK_SET TK_VAR TK_EOL {
+		set_option($3,true);
+		delete $3;
+		if(option::disp_prompt)
+			cout << "?- ";
+	}
+	| goal TK_UNSET TK_VAR TK_EOL {
+		set_option($3,false);
+		delete $3;
+		if(option::disp_prompt)
+			cout << "?- ";
+	}
 	| goal TK_EE TK_EOL {
 		Expression *meaning_of_life = unsigned_nat_to_term(0x2a,true);
 		meaning_of_life->accept(printTermVisitor);
@@ -240,7 +281,7 @@ int main(int argc, char** argv){
 		map<char*,Expression*>::iterator it = usr_alias_map.begin();
 		if(option::disp_alias_def){
 			while(it != usr_alias_map.end()){
-				printf("\e[0;34m%8s\e[0m ::= ",it->first);
+				printf("\e[2;49;94m%8s\e[0m ::= ",it->first);
 				it->second->accept(::printTermVisitor);
 				cout << endl;
 				++it;
