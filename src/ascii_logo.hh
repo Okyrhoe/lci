@@ -26,9 +26,11 @@ const string asciilogo =
 	"       \\xxx\\____\\    \\xxx\\____\\               \\xxx\\____\\ /xx\\____\\\n" \
 	"        \\xx/    /     \\xx/    /                \\xx/    / \\xx/    /       \n" \
 	"         \\/____/       \\/____/                  \\/____/   \\/____/        \n" \
-	"                                                                             \n" \
-	"      Welcome to LCi, a flexible lambda calculus interpreter.                \n" \
-	" You are about to experience the awe and mystery which reaches               \n" \
-	" from the inner mind to the outer limits of lambda calculus!                 \n" ;
+	"                                                                             \n" ;
+
+const string greet = 
+	"        Welcome to LCi, a flexible lambda calculus interpreter. You \n" \
+	" are about to experience the awe and mystery which reaches from the \n" \
+	" inner mind to the outer limits of lambda calculus!                 \n" ;
 
 #endif

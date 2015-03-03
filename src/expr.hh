@@ -22,22 +22,22 @@ public:
 // forward declaration
 class Visitor;
 
-class Term {
+class Expression {
 public:
 	set<char *,Comparator> unbound;
 	Type type;
-	Term(Type);
-	Term(const Term&);
-	virtual ~Term(){}
-	Term& operator=(const Term&);
+	Expression(Type);
+	Expression(const Expression&);
+	virtual ~Expression(){}
+	Expression& operator=(const Expression&);
 	virtual void accept(Visitor&) = 0;
-	virtual Term* clone(void) = 0;
+	virtual Expression* clone(void) = 0;
 	virtual ostream& dump(ostream& os) = 0;
 };
 
-ostream& operator<<(ostream& os, Term& t);
+ostream& operator<<(ostream& os, Expression& t);
 
-class Variable : public Term {
+class Variable : public Expression {
 public:
 	char *name;
 	Variable(char*);
@@ -45,33 +45,33 @@ public:
 	~Variable();
 	Variable& operator=(const Variable&);
 	void accept(Visitor&);
-	Term* clone(void);
+	Expression* clone(void);
 	virtual ostream& dump(ostream& os);
 };
 
-class Application : public Term {
+class Application : public Expression {
 public:
-	Term* lterm;
-	Term* rterm;
-	Application(Term*,Term*);
+	Expression* lterm;
+	Expression* rterm;
+	Application(Expression*,Expression*);
 	Application(const Application&);
 	~Application();
 	Application& operator=(const Application&);
 	void accept(Visitor&);
-	Term* clone(void);
+	Expression* clone(void);
 	virtual ostream& dump(ostream& os);
 };
 
-class Abstraction : public Term {
+class Abstraction : public Expression {
 public:
-	Term* term;
+	Expression* expr;
 	Variable* var;
-	Abstraction(Variable*,Term*);
+	Abstraction(Variable*,Expression*);
 	Abstraction(const Abstraction&);
 	~Abstraction();
 	Abstraction& operator=(const Abstraction&);
 	void accept(Visitor&);
-	Term* clone(void);
+	Expression* clone(void);
 	virtual ostream& dump(ostream& os);
 };
 
@@ -99,7 +99,7 @@ class PrintTermVisitor : public Visitor {
 	}
 	void visit(Abstraction& t){
 		cout << "(\\" << t.var->name << ".";
-		(&t)->term->accept(*this);
+		(&t)->expr->accept(*this);
 		cout << ")";
 	}
 };
@@ -115,8 +115,8 @@ class TermClosureVisitor : public Visitor {
 		t.unbound.insert(t.rterm->unbound.begin(), t.rterm->unbound.end());
 	}
 	void visit(Abstraction& t){ 
-		(&t)->term->accept(*this);
-		t.unbound.insert(t.term->unbound.begin(), t.term->unbound.end());
+		(&t)->expr->accept(*this);
+		t.unbound.insert(t.expr->unbound.begin(), t.expr->unbound.end());
 		t.unbound.erase(t.var->name);
 	}
 };

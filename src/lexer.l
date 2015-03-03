@@ -16,7 +16,7 @@
 \n|\r\n			{ return TK_EOL; }
 [ \t]			{ /* ignore whitespaces */ }
 \\				{ return TK_LAMBDA; }
-[a-zA-Z]+		{
+[a-zA-Z][a-zA-Z0-9]*		{
 	assert((yylval.str = new char[strlen(yytext)+1]()));
 	strcpy(yylval.str, yytext);
 	return TK_VAR;

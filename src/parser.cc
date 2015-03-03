@@ -107,7 +107,7 @@
 	#include <ctime>
 	#include <map>
 	#include <set>
-	#include "term.hh"
+	#include "expr.hh"
 	#include "reduction.hh"
 	#include "ascii_logo.hh"
 
@@ -122,14 +122,14 @@
 			 << "\'" << endl;
 	}
 	
-	static map<char*,Term*,Comparator> usr_alias_map;
+	static map<char*,Expression*,Comparator> usr_alias_map;
 	static set<char*,Comparator> sys_alias_set;
 
 	static struct sigaction act;
 	
 	void sigint_handler(int signo){
 		cout << "Clearing internal data structures... ";
-		map<char*,Term*>::iterator it = usr_alias_map.begin();
+		map<char*,Expression*>::iterator it = usr_alias_map.begin();
 		while(it != usr_alias_map.end()){
 			delete it->first;
 			delete it->second;
@@ -141,14 +141,17 @@
 		exit(EXIT_FAILURE);
 	};
 
-	namespace opt {
-		bool show_booleans = true;
-		bool show_unsigned = true;
-		bool show_signed = true;
-		bool show_prompt = false;
-		bool show_aliases = false;
-		bool show_trace = true;
+	#include "opt.hh"
+	namespace option {
+		bool disp_bool		= true;
+		bool disp_unsigned	= true;
+		bool disp_signed	= true;
+		bool disp_prompt	= false;
+		bool disp_alias_def	= false;
+		bool trace			= true;
+		bool strict			= false;	//applicate order (call-by-value)
 	}
+
 	// unused:
 	static PrintTermVisitor printTermVisitor;
 	static TermClosureVisitor TermClosureVisitor;
@@ -174,14 +177,14 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 60 "src/parser.y"
+#line 63 "src/parser.y"
 {
-	class Term* term;
+	class Expression* expr;
 	char* str;
 	int val;
 }
 /* Line 193 of yacc.c.  */
-#line 185 "src/parser.cc"
+#line 188 "src/parser.cc"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
@@ -194,7 +197,7 @@ typedef union YYSTYPE
 
 
 /* Line 216 of yacc.c.  */
-#line 198 "src/parser.cc"
+#line 201 "src/parser.cc"
 
 #ifdef short
 # undef short
@@ -480,8 +483,8 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    85,    85,    86,   129,   166,   179,   186,   194,   197,
-     200,   203
+       0,    83,    83,    84,   147,   184,   197,   204,   212,   215,
+     218,   221
 };
 #endif
 
@@ -492,7 +495,7 @@ static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "TK_VAR", "TK_NUM", "TK_LPAR", "TK_RPAR",
   "TK_DOT", "TK_LAMBDA", "TK_DEF", "TK_EE", "TK_EOL", "term_assoc",
-  "$accept", "goal", "Term", 0
+  "$accept", "goal", "Expression", 0
 };
 #endif
 
@@ -1396,59 +1399,79 @@ yyreduce:
   switch (yyn)
     {
         case 3:
-#line 86 "src/parser.y"
+#line 84 "src/parser.y"
     {
-		Term* term = (yyvsp[(2) - (3)].term);
-		cout << "before: " << *term << endl;
+		Expression* expr = (yyvsp[(2) - (3)].expr);
 
-		term->accept(TermClosureVisitor);
-		if(term->unbound.empty())
-			cout << "=> Compinator" << endl;
+		expr->accept(TermClosureVisitor);
+		if(expr->unbound.empty())
+			cout << "Compinator" << endl;
 		else {
-			cout << "=> Unbound variables: ";
+			cout << "Unbound variables: ";
 			set<char *>::iterator it;
-			for(it=term->unbound.begin(); it != term->unbound.end(); ){
+			for(it=expr->unbound.begin(); it != expr->unbound.end(); ){
 				cout << *it;
-				cout << (++it != term->unbound.end() ? ", " : ".\n");
+				cout << (++it != expr->unbound.end() ? ", " : ".\n");
 			}
 		}
-
+		
 		struct timeval ts,te;
+		bool repeat = true;
+		int reductions = 0;
 		gettimeofday(&ts, NULL);
-		while(normal_order_reduction(&term));
+		do {
+			if(option::trace){
+				cout << "\e[2;49;96mtrace\e[0m: " << *expr << endl;
+				string answer;
+				char option;
+				do {
+					cout << "continue (c), step(s), abort(a)?\e[0m ";
+					getline(cin,answer);
+					option = tolower(answer[0]);
+					if(cin.eof()){
+						option::trace = repeat = false;
+						break;
+					}
+				} while (cin.fail() || answer.empty() ||
+						(option != 'c' && option != 's' && option != 'a'));
+				switch(option){
+					case 'a': repeat = false; break;
+					case 'c': option::trace = false; break;
+				}
+			}
+
+		} while(repeat && reduce(&expr) && ++reductions);
 		gettimeofday(&te, NULL);
 
+		double elapsed = (te.tv_sec-ts.tv_sec) + (te.tv_usec-ts.tv_usec)/1.0e+6;
+		cout << "Performed " << reductions << " reductions in " << fixed << elapsed << " sec." << endl;
 		int svalue;
-		if(opt::show_signed && term_to_signed_nat(svalue, term))
+		if(option::disp_signed && term_to_signed_nat(svalue, expr))
 			cout << "Signed value: " << svalue << endl;
 		int uvalue;
-		if(opt::show_unsigned && term_to_unsigned_nat(uvalue, term))
+		if(option::disp_unsigned && term_to_unsigned_nat(uvalue, expr))
 			cout << "Unsigned value: " << uvalue << endl;
 		bool bvalue;
-		if(opt::show_booleans && term_to_boolean(bvalue, term))
+		if(option::disp_bool && term_to_boolean(bvalue, expr))
 			cout << "Boolean value: " << (bvalue ? "true" : "false") << endl;
-
-		cout << "Lambda expression: " << *term << endl;
+		cout << "Lambda expression: " << *expr << endl;
 		
-		// term->accept(printTermVisitor);
+		// expr->accept(printTermVisitor);
 		// cout << endl;
-	
-		double elapsed = (te.tv_sec-ts.tv_sec) + (te.tv_usec-ts.tv_usec)/1.0e+6;
-		cout << fixed << elapsed << " sec." << endl;
-		delete term;
+		delete expr;
 
-		if(opt::show_prompt)
+		if(option::disp_prompt)
 			cout << "?- ";
 	;}
     break;
 
   case 4:
-#line 129 "src/parser.y"
+#line 147 "src/parser.y"
     {
 		if (sys_alias_set.count((yyvsp[(2) - (5)].str))){
 			cout << "System alias \"" << (yyvsp[(2) - (5)].str) << "\" can't be redefined." << endl;
 			delete (yyvsp[(2) - (5)].str);
-			delete (yyvsp[(4) - (5)].term);
+			delete (yyvsp[(4) - (5)].expr);
 		}
 		else if (usr_alias_map.count((yyvsp[(2) - (5)].str))){
 			string answer;
@@ -1459,24 +1482,24 @@ yyreduce:
 					(tolower(answer[0]) != 'y' && tolower(answer[0]) != 'n'));
 			if(tolower(answer[0]) != 'y'){
 				delete (yyvsp[(2) - (5)].str);
-				delete (yyvsp[(4) - (5)].term);
+				delete (yyvsp[(4) - (5)].expr);
 			}
 			else {
-				map<char*,Term*>::iterator it = usr_alias_map.find((yyvsp[(2) - (5)].str));
+				map<char*,Expression*>::iterator it = usr_alias_map.find((yyvsp[(2) - (5)].str));
 				delete it->first;
 				delete it->second;
 				usr_alias_map.erase(it);
-				usr_alias_map.insert(pair<char*,Term*>((yyvsp[(2) - (5)].str),(yyvsp[(4) - (5)].term)));
-				if(opt::show_prompt)
+				usr_alias_map.insert(pair<char*,Expression*>((yyvsp[(2) - (5)].str),(yyvsp[(4) - (5)].expr)));
+				if(option::disp_prompt)
 					cout << "User alias \"" << (yyvsp[(2) - (5)].str) << "\" redefined." << endl;
 			}
 		}
 		else {
-			usr_alias_map.insert(pair<char*,Term*>((yyvsp[(2) - (5)].str),(yyvsp[(4) - (5)].term)));
-			if(opt::show_prompt)
+			usr_alias_map.insert(pair<char*,Expression*>((yyvsp[(2) - (5)].str),(yyvsp[(4) - (5)].expr)));
+			if(option::disp_prompt)
 				cout << "User alias \"" << (yyvsp[(2) - (5)].str) << "\" defined." << endl;
 		}
-		if(opt::show_prompt)
+		if(option::disp_prompt)
 			cout << "?- ";
 		else
 			sys_alias_set.insert((yyvsp[(2) - (5)].str));
@@ -1484,73 +1507,73 @@ yyreduce:
     break;
 
   case 5:
-#line 166 "src/parser.y"
+#line 184 "src/parser.y"
     {
-		Term *meaning_of_life = unsigned_nat_to_term(0x2a,true);
+		Expression *meaning_of_life = unsigned_nat_to_term(0x2a,true);
 		meaning_of_life->accept(printTermVisitor);
 		delete meaning_of_life;
 		cout << endl;
-		cout << "\e[3;49;90m" \
+		cout << "\e[2;49;37m" \
 				"Douglas Adams, the only person who knew what this question " \
 				"really was about is now dead, unfortunately." << endl;
 		cout << "So now you might wonder what the meaning of death is..." \
 				"\e[0m" << endl;
-		if(opt::show_prompt)
+		if(option::disp_prompt)
 			cout << "?- ";
 	;}
     break;
 
   case 6:
-#line 179 "src/parser.y"
+#line 197 "src/parser.y"
     {
-		if(opt::show_prompt)
+		if(option::disp_prompt)
 			cout << "?- ";
 	;}
     break;
 
   case 7:
-#line 186 "src/parser.y"
+#line 204 "src/parser.y"
     {
 		if(!usr_alias_map.count((yyvsp[(1) - (1)].str)))
-			assert(((yyval.term) = new Variable((yyvsp[(1) - (1)].str))));
+			assert(((yyval.expr) = new Variable((yyvsp[(1) - (1)].str))));
 		else {
-			assert(((yyval.term) = usr_alias_map[(yyvsp[(1) - (1)].str)]->clone()));
+			assert(((yyval.expr) = usr_alias_map[(yyvsp[(1) - (1)].str)]->clone()));
 			delete (yyvsp[(1) - (1)].str);
 		}
 	;}
     break;
 
   case 8:
-#line 194 "src/parser.y"
+#line 212 "src/parser.y"
     {
-		assert(((yyval.term) = unsigned_nat_to_term((yyvsp[(1) - (1)].val),true)));
+		assert(((yyval.expr) = unsigned_nat_to_term((yyvsp[(1) - (1)].val),true)));
 	;}
     break;
 
   case 9:
-#line 197 "src/parser.y"
+#line 215 "src/parser.y"
     {
-		assert(((yyval.term) = new Application((yyvsp[(1) - (2)].term),(yyvsp[(2) - (2)].term))));
+		assert(((yyval.expr) = new Application((yyvsp[(1) - (2)].expr),(yyvsp[(2) - (2)].expr))));
 	;}
     break;
 
   case 10:
-#line 200 "src/parser.y"
+#line 218 "src/parser.y"
     {
-		assert(((yyval.term) = new Abstraction(new Variable((yyvsp[(2) - (4)].str)),(yyvsp[(4) - (4)].term))));
+		assert(((yyval.expr) = new Abstraction(new Variable((yyvsp[(2) - (4)].str)),(yyvsp[(4) - (4)].expr))));
 	;}
     break;
 
   case 11:
-#line 203 "src/parser.y"
+#line 221 "src/parser.y"
     {
-		(yyval.term) = (yyvsp[(2) - (3)].term);
+		(yyval.expr) = (yyvsp[(2) - (3)].expr);
 	;}
     break;
 
 
 /* Line 1267 of yacc.c.  */
-#line 1554 "src/parser.cc"
+#line 1577 "src/parser.cc"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1764,12 +1787,14 @@ yyreturn:
 }
 
 
-#line 207 "src/parser.y"
+#line 225 "src/parser.y"
 
 
 int main(int argc, char** argv){
 	extern FILE* yyin;
-	cout << asciilogo << endl;
+	for(int i=0; i<asciilogo.length(); ++i)
+		cout << "\e[2;49;9" << (asciilogo.at(i)-'x' ? 4:7) << "m" << asciilogo.at(i) << "\e[0m";
+	cout << "\e[2;49;97m" << greet << "\e[0m" << endl;
 	act.sa_handler = sigint_handler;
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = 0;
@@ -1778,8 +1803,8 @@ int main(int argc, char** argv){
 		cout << "Loading aliases from \"" << argv[1] << "\"..." << endl;
 		assert((yyin = fopen(argv[1], "r")));
 		yyparse();
-		map<char*,Term*>::iterator it = usr_alias_map.begin();
-		if(opt::show_aliases){
+		map<char*,Expression*>::iterator it = usr_alias_map.begin();
+		if(option::disp_alias_def){
 			while(it != usr_alias_map.end()){
 				printf("\e[0;34m%8s\e[0m ::= ",it->first);
 				it->second->accept(::printTermVisitor);
@@ -1790,7 +1815,7 @@ int main(int argc, char** argv){
 		else {
 			size_t line_length = 0u;
 			while(it != usr_alias_map.end()){
-				cout << "\e[0;34m" << it->first << "\e[0m";
+				cout << "\e[2;49;94m" << it->first << "\e[0m";
 				if((line_length += strlen(it->first)+2) > 60)
 					line_length = 0u;
 				++it;
@@ -1801,12 +1826,12 @@ int main(int argc, char** argv){
 		fclose(yyin);
 		yyrestart((yyin = stdin));
 	}
-	opt::show_prompt = true;
+	option::disp_prompt = true;
 	cout << "?- ";
 	yyparse();
 	cout << endl;
 	cout << "Clearing internal data structures... ";
-	map<char*,Term*>::iterator it = usr_alias_map.begin();
+	map<char*,Expression*>::iterator it = usr_alias_map.begin();
 	while(it != usr_alias_map.end()){
 		delete it->first;
 		delete it->second;

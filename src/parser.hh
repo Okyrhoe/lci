@@ -68,9 +68,9 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 60 "src/parser.y"
+#line 63 "src/parser.y"
 {
-	class Term* term;
+	class Expression* expr;
 	char* str;
 	int val;
 }

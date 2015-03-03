@@ -2,23 +2,23 @@
 #include <cstring>
 #include <cassert>
 #include <cstdlib>
-#include "term.hh"
+#include "expr.hh"
 
-ostream& operator<<(ostream& os, Term& t){
+ostream& operator<<(ostream& os, Expression& t){
 	return t.dump(os);
 }
 
-/** Term **/
+/** Expression **/
 
-Term::Term(Type type){
+Expression::Expression(Type type){
 	this->type = type;
 }
 
-Term::Term(const Term& other){
+Expression::Expression(const Expression& other){
 	type = other.type;
 }
 
-Term& Term::operator=(const Term& other){
+Expression& Expression::operator=(const Expression& other){
 	if(&other != this)
 		type = other.type;
 	return *this;
@@ -26,11 +26,11 @@ Term& Term::operator=(const Term& other){
 
 /** Variable **/
 
-Variable::Variable(char *name) : Term(variable){
+Variable::Variable(char *name) : Expression(variable){
 	this->name = name;
 }
 
-Variable::Variable(const Variable& other) : Term(other){
+Variable::Variable(const Variable& other) : Expression(other){
 	assert((name = new char[strlen(other.name)+1]()));
 	strcpy(name,other.name);
 
@@ -38,7 +38,7 @@ Variable::Variable(const Variable& other) : Term(other){
 
 Variable& Variable::operator=(const Variable& other){
 	if(&other != this){
-		Term::operator = (static_cast<const Term &>(other));
+		Expression::operator = (static_cast<const Expression &>(other));
 		assert((name = new char[strlen(other.name)+1]()));
 		strcpy(name,other.name);
 	}
@@ -58,25 +58,25 @@ ostream& Variable::dump(ostream& os){
 	return os << name;
 }
 
-Term* Variable::clone(void){ 
+Expression* Variable::clone(void){ 
 	return new Variable(*this);
 }
 
 /** Application **/
 
-Application::Application(Term *lterm,Term *rterm) : Term(application){
+Application::Application(Expression *lterm,Expression *rterm) : Expression(application){
 	this->lterm = lterm;
 	this->rterm = rterm;
 }
 
-Application::Application(const Application& other) : Term(other){
+Application::Application(const Application& other) : Expression(other){
 	lterm = (&other)->lterm->clone();
 	rterm = (&other)->rterm->clone();
 }
 
 Application& Application::operator=(const Application& other){
 	if(&other != this){
-		Term::operator = (static_cast<const Term &>(other));
+		Expression::operator = (static_cast<const Expression &>(other));
 		lterm = (&other)->lterm->clone();
 		rterm = (&other)->rterm->clone();
 	}
@@ -99,27 +99,27 @@ ostream& Application::dump(ostream& os){
 	return os;
 }
 
-Term* Application::clone(void){
+Expression* Application::clone(void){
 	return new Application(*this);
 }
 
 /** Abstraction **/
 
-Abstraction::Abstraction(Variable *var,Term *term) : Term(abstraction){
+Abstraction::Abstraction(Variable *var,Expression *expr) : Expression(abstraction){
 	this->var = var;
-	this->term = term;
+	this->expr = expr;
 }
 
-Abstraction::Abstraction(const Abstraction& other) : Term(other){
+Abstraction::Abstraction(const Abstraction& other) : Expression(other){
 	var = static_cast<Variable*>((&other)->var->clone());
-	term = (&other)->term->clone();
+	expr = (&other)->expr->clone();
 }
 
 Abstraction& Abstraction::operator=(const Abstraction& other){
 	if(&other != this){
-		Term::operator = (static_cast<const Term &>(other));
+		Expression::operator = (static_cast<const Expression &>(other));
 		var = static_cast<Variable*>((&other)->var->clone());
-		term = (&other)->term->clone();
+		expr = (&other)->expr->clone();
 	}
 	return *this;
 }
@@ -127,8 +127,8 @@ Abstraction& Abstraction::operator=(const Abstraction& other){
 Abstraction::~Abstraction(){
 	assert(var);
 	delete var;
-	assert(term);
-	delete term;
+	assert(expr);
+	delete expr;
 }
 
 void Abstraction::accept(Visitor& v){
@@ -136,10 +136,10 @@ void Abstraction::accept(Visitor& v){
 }
 
 ostream& Abstraction::dump(ostream& os){
-	os << "(\\"; var->dump(os); os << "."; term->dump(os); os << ")";
+	os << "(\\"; var->dump(os); os << "."; expr->dump(os); os << ")";
 	return os;
 }
 
-Term* Abstraction::clone(void){
+Expression* Abstraction::clone(void){
 	return new Abstraction(*this);
 }
