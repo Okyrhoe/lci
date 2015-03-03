@@ -71,6 +71,13 @@
 
 %%
 
+// gcd = (\g.\m.\n. leq m n (g n m) (g m n)) (Y (\g.\x.\y. iszero y x (g y (mod x y))))
+// Reduction Strategies
+// Normal Order:       Leftmost outermost redex reduced first
+// Applicative Order:  Leftmost innermost redex reduced first
+// Call by value:      Only outermost redex reduced                Reduction only if right-hand side has been reduced to a value (= variable or abstraction)
+// Call by name:       Leftmost outermost redex reduced first      No reductions inside abstractions
+
 goal: /* nothing */
 	| goal Term TK_EOL {
 		Term* term = $2;

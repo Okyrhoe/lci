@@ -47,7 +47,8 @@
      TK_LAMBDA = 263,
      TK_DEF = 264,
      TK_EE = 265,
-     TK_EOL = 266
+     TK_EOL = 266,
+     term_assoc = 267
    };
 #endif
 /* Tokens.  */
@@ -60,20 +61,21 @@
 #define TK_DEF 264
 #define TK_EE 265
 #define TK_EOL 266
+#define term_assoc 267
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 61 "src/parser.y"
+#line 60 "src/parser.y"
 {
 	class Term* term;
 	char* str;
 	int val;
 }
 /* Line 1529 of yacc.c.  */
-#line 77 "src/parser.hh"
+#line 79 "src/parser.hh"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
